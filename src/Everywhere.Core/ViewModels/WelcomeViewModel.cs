@@ -1,179 +1,190 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Diagnostics.CodeAnalysis;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
 using Everywhere.AI;
 using Everywhere.Common;
 using Everywhere.Configuration;
-using Everywhere.Utilities;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ShadUI;
+using ZLinq;
 
 namespace Everywhere.ViewModels;
 
-public sealed partial class WelcomeViewModel : BusyViewModelBase
+public partial class WelcomeViewModel : BusyViewModelBase
 {
-    [ObservableProperty]
-    public partial WelcomeViewModelStep? CurrentStep { get; private set; }
+    public enum Step
+    {
+        Intro = 0,
+        SelectProvider = 1,
+        /// <summary>
+        /// Enter API Key (optional: select model) and validate
+        /// </summary>
+        EnterApiKey = 2,
+        /// <summary>
+        /// Teach shortcut
+        /// </summary>
+        Shortcut = 3,
+        /// <summary>
+        /// Select telemetry preference
+        /// </summary>
+        Telemetry = 4
+    }
+
+    public record ModelProviderWrapper(ModelProviderTemplate ProviderTemplate)
+    {
+        public DynamicResourceKeyBase DescriptionKey => new DynamicResourceKey($"WelcomeView_ModelProviderWrapper_{ProviderTemplate.Id}_Description");
+
+        public Uri OfficialWebsiteUri => new(ProviderTemplate.OfficialWebsiteUrl ?? "https://everywhere.sylinko.com", UriKind.Absolute);
+
+        public Uri ApiKeyHelpUri => new($"https://everywhere.sylinko.com/model-provider/{ProviderTemplate.Id}", UriKind.Absolute);
+    }
 
     [ObservableProperty]
-    public partial bool IsPageTransitionReversed { get; private set; }
+    public partial Step CurrentStep { get; private set; }
 
-    /// <summary>
-    /// Only allow skipping if there are more steps ahead.
-    /// </summary>
-    public bool CanSkipAll => _currentStepIndex < _steps.Count - 1;
+    public IReadOnlyList<ModelProviderWrapper> ModelProviders { get; }
 
-    /// <summary>
-    /// Only allow moving next if there are more steps ahead.
-    /// </summary>
-    public bool CanMoveNext => _currentStepIndex < _steps.Count - 1;
+    public ModelProviderWrapper? SelectedModelProvider
+    {
+        get;
+        set
+        {
+            if (!SetProperty(ref field, value)) return;
 
-    /// <summary>
-    /// Only allow moving previous if there are steps behind.
-    /// </summary>
-    public bool CanMovePrevious => _currentStepIndex > 0;
+            ModelDefinitions = field?.ProviderTemplate.ModelDefinitions
+                    .AsValueEnumerable()
+                    .Where(m => m.Id != "custom")
+                    .ToList()
+                ?? [];
+            SelectedModelDefinition = ModelDefinitions.FirstOrDefault(m => m.IsDefault) ?? ModelDefinitions.First();
+
+            ApiKey = null;
+            GoToEnterApiKeyStepCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    [ObservableProperty]
+    public partial IReadOnlyList<ModelDefinitionTemplate> ModelDefinitions { get; private set; } = [];
+
+    [ObservableProperty]
+    public partial ModelDefinitionTemplate? SelectedModelDefinition { get; set; }
+
+    public string? ApiKey
+    {
+        get;
+        set
+        {
+            if (!SetProperty(ref field, value)) return;
+
+            ValidateApiKeyCommand.NotifyCanExecuteChanged();
+            IsApiKeyValid = false;
+        }
+    }
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(GoToShortcutStepCommand))]
+    public partial bool IsApiKeyValid { get; private set; }
+
+    public event Action? ApiKeyValidated;
 
     public Settings Settings { get; }
 
-    public CustomAssistant Assistant { get; }
+    private readonly IKernelMixinFactory _kernelMixinFactory;
+    private readonly ILogger<WelcomeViewModel> _logger;
 
-    [ObservableProperty]
-    public partial bool IsConnectivityChecked { get; set; }
-
-
-    private readonly IReadOnlyList<WelcomeViewModelStep> _steps;
-    private int _currentStepIndex;
-
-    public WelcomeViewModel(IServiceProvider serviceProvider)
+    public WelcomeViewModel(
+        IKernelMixinFactory kernelMixinFactory,
+        Settings settings,
+        ILogger<WelcomeViewModel> logger)
     {
-        Settings = serviceProvider.GetRequiredService<Settings>();
+        _kernelMixinFactory = kernelMixinFactory;
+        Settings = settings;
+        _logger = logger;
 
-        // Initialize a default custom assistant
-        Assistant = new CustomAssistant
+        ModelProviders = ModelProviderTemplate.SupportedTemplates
+            .AsValueEnumerable()
+            .Where(m => m.Id is not "ollama")
+            .Select(m => new ModelProviderWrapper(m))
+            .ToList();
+    }
+
+    [RelayCommand]
+    private void Close()
+    {
+        // Temporarily disabled - DialogManager.CloseAll() not available in current ShadUI version
+        // DialogManager.CloseAll();
+    }
+
+    [RelayCommand]
+    private void GoToSelectProviderStep() => CurrentStep = Step.SelectProvider;
+
+    [RelayCommand]
+    private void PreviousStep() => CurrentStep = (Step)Math.Max(0, (int)CurrentStep - 1);
+
+    public bool CanGoToEnterApiKeyStep => SelectedModelProvider is not null;
+
+    [RelayCommand(CanExecute = nameof(CanGoToEnterApiKeyStep))]
+    private void GoToEnterApiKeyStep() => CurrentStep = Step.EnterApiKey;
+
+    [MemberNotNullWhen(true, nameof(ApiKey), nameof(SelectedModelProvider), nameof(SelectedModelDefinition))]
+    public bool CanValidateApiKey => !string.IsNullOrWhiteSpace(ApiKey) && SelectedModelProvider is not null && SelectedModelDefinition is not null;
+
+    [RelayCommand(CanExecute = nameof(CanValidateApiKey))]
+    private Task ValidateApiKey() => ExecuteBusyTaskAsync(async cancellationToken =>
+    {
+        if (!CanValidateApiKey) return;
+
+        IsApiKeyValid = false;
+        var customAssistant = new CustomAssistant
         {
             Name = LocaleResolver.CustomAssistant_Name_Default,
-            ConfiguratorType = ModelProviderConfiguratorType.PresetBased
+            Icon = new ColoredIcon(ColoredIconType.Text) { Text = "🥳" },
+            ApiKey = ApiKey,
+            ConfiguratorType = ModelProviderConfiguratorType.Templated,
+            ModelProviderTemplateId = SelectedModelProvider.ProviderTemplate.Id,
+            ModelDefinitionTemplateId = SelectedModelDefinition.Id
         };
-        Assistant.PropertyChanged += delegate
+
+        try
         {
-            // Reset connectivity check when assistant configuration changes
-            if (IsNotBusy) IsConnectivityChecked = false;
-        };
-
-        _steps =
-        [
-            new WelcomeViewModelIntroStep(this),
-            new WelcomeViewModelConfiguratorStep(this),
-            new WelcomeViewModelAssistantStep(this, serviceProvider),
-            new WelcomeViewModelShortcutStep(this),
-            new WelcomeViewModelTelemetryStep(this)
-        ];
-
-        CurrentStep = _steps[0];
-    }
-
-    [RelayCommand(CanExecute = nameof(CanMoveNext))]
-    private void MoveNext()
-    {
-        IsPageTransitionReversed = false;
-        _currentStepIndex++;
-        CurrentStep = _steps[_currentStepIndex];
-    }
-
-    [RelayCommand(CanExecute = nameof(CanMovePrevious))]
-    private void MovePrevious()
-    {
-        IsPageTransitionReversed = true;
-        _currentStepIndex--;
-        CurrentStep = _steps[_currentStepIndex];
-    }
-
-    [RelayCommand]
-    public void Close()
-    {
-        if (IsConnectivityChecked)
+            var kernelMixin = _kernelMixinFactory.GetOrCreate(customAssistant);
+            await kernelMixin.CheckConnectivityAsync(cancellationToken);
+        }
+        catch (Exception ex)
         {
-            // Save the configured assistant
-            Settings.Model.CustomAssistants.Add(Assistant);
+            ex = HandledChatException.Handle(ex);
+            _logger.LogError(
+                ex,
+                "Failed to validate API key for provider {ProviderId} and model {ModelId}",
+                SelectedModelProvider.ProviderTemplate.Id,
+                SelectedModelDefinition.Id);
+            // Temporarily disabled - ToastManager not available in current ShadUI version
+            // ToastManager
+            //     .CreateToast(LocaleResolver.WelcomeViewModel_ValidateApiKey_FailedToast_Title)
+            //     .WithContent(ex.GetFriendlyMessage().ToTextBlock())
+            //     .DismissOnClick()
+            //     .ShowError();
+            return;
         }
 
-        CurrentStep?.CancellationTokenSource.Cancel();
-        DialogManager.CloseAll();
-    }
-}
+        IsApiKeyValid = true;
+        ApiKeyValidated?.Invoke();
 
-/// <summary>
-/// The base class for welcome view model steps.
-/// All step must inherit from this class.
-/// When switching steps, the View layer will select the appropriate DataTemplate based on the step type.
-/// </summary>
-/// <param name="viewModel"></param>
-public abstract class WelcomeViewModelStep(WelcomeViewModel viewModel) : BusyViewModelBase
-{
-    public WelcomeViewModel ViewModel { get; } = viewModel;
+        // Apply settings
+        Settings.Model.CustomAssistants.Add(customAssistant);
+        Settings.Model.SelectedCustomAssistant = customAssistant;
+    });
 
-    public ReusableCancellationTokenSource CancellationTokenSource { get; } = new();
-}
-
-/// <summary>
-/// The introduction step of the welcome view model.
-/// </summary>
-/// <param name="viewModel"></param>
-public sealed class WelcomeViewModelIntroStep(WelcomeViewModel viewModel) : WelcomeViewModelStep(viewModel);
-
-public sealed class WelcomeViewModelConfiguratorStep(WelcomeViewModel viewModel) : WelcomeViewModelStep(viewModel);
-
-/// <summary>
-/// Message to trigger confetti effect in the UI.
-/// </summary>
-public sealed record ShowConfettiEffectMessage;
-
-public sealed partial class WelcomeViewModelAssistantStep(WelcomeViewModel viewModel, IServiceProvider serviceProvider)
-    : WelcomeViewModelStep(viewModel)
-{
-    private readonly IKernelMixinFactory _kernelMixinFactory = serviceProvider.GetRequiredService<IKernelMixinFactory>();
-    private readonly ILogger<WelcomeViewModelAssistantStep> _logger = serviceProvider.GetRequiredService<ILogger<WelcomeViewModelAssistantStep>>();
+    [RelayCommand(CanExecute = nameof(IsApiKeyValid))]
+    private void GoToShortcutStep() => CurrentStep = Step.Shortcut;
 
     [RelayCommand]
-    private Task CheckConnectivityAsync()
-    {
-        ViewModel.IsConnectivityChecked = false;
-        if (!ViewModel.Assistant.Configurator.Validate()) return Task.CompletedTask;
+    private void GoToTelemetryStep() => CurrentStep = Step.Telemetry;
 
-        return ExecuteBusyTaskAsync(
-            async cancellationToken =>
-            {
-                try
-                {
-                    var kernelMixin = _kernelMixinFactory.GetOrCreate(ViewModel.Assistant);
-                    await kernelMixin.CheckConnectivityAsync(cancellationToken);
-                    StrongReferenceMessenger.Default.Send(new ShowConfettiEffectMessage());
-                    ViewModel.IsConnectivityChecked = true;
-                }
-                catch (Exception ex)
-                {
-                    ex = HandledChatException.Handle(ex);
-                    _logger.LogError(ex, "Failed to validate assistant connectivity");
-                    ToastManager
-                        .CreateToast(LocaleResolver.WelcomeViewModel_ValidateApiKey_FailedToast_Title)
-                        .WithContent(ex.GetFriendlyMessage().ToTextBlock())
-                        .DismissOnClick()
-                        .ShowError();
-                }
-            },
-            cancellationToken: CancellationTokenSource.Token);
-    }
-}
-
-public sealed class WelcomeViewModelShortcutStep(WelcomeViewModel viewModel) : WelcomeViewModelStep(viewModel);
-
-public sealed partial class WelcomeViewModelTelemetryStep(WelcomeViewModel viewModel) : WelcomeViewModelStep(viewModel)
-{
     [RelayCommand]
     private void SendOnlyNecessaryTelemetry()
     {
-        ViewModel.Settings.Common.DiagnosticData = false;
-        ViewModel.Close();
+        Settings.Common.DiagnosticData = false;
+        Close();
     }
 }

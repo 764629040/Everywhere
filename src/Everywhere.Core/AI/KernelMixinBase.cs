@@ -1,5 +1,4 @@
-﻿using Everywhere.Common;
-using Microsoft.Extensions.AI;
+﻿using Microsoft.Extensions.AI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 
@@ -9,32 +8,14 @@ public abstract class KernelMixinBase(CustomAssistant customAssistant) : IKernel
 {
     // cache properties for comparison
     public ModelProviderSchema Schema { get; } = customAssistant.Schema;
-
-    public string Endpoint { get; } = customAssistant.Endpoint?.Trim().Trim('/') ??
-        throw new HandledChatException(
-            new InvalidOperationException("Endpoint cannot be empty."),
-            HandledChatExceptionType.InvalidEndpoint);
-
-    public string? ApiKey { get; } = Configuration.ApiKey.GetKey(customAssistant.ApiKey);
-
-    protected string EnsureApiKey() => ApiKey ??
-        throw new HandledChatException(
-            new InvalidOperationException("API Key cannot be empty."),
-            HandledChatExceptionType.InvalidApiKey);
-
-    public string ModelId { get; } = customAssistant.ModelId ??
-        throw new HandledChatException(
-            new InvalidOperationException("Model ID cannot be empty."),
-            HandledChatExceptionType.InvalidConfiguration);
-
+    public string Endpoint { get; } = customAssistant.Endpoint.ActualValue.Trim().Trim('/');
+    public string? ApiKey { get; } = customAssistant.ApiKey;
+    public string ModelId { get; } = customAssistant.ModelId;
     public int RequestTimeoutSeconds { get; } = customAssistant.RequestTimeoutSeconds;
 
     public int ContextWindow => _customAssistant.MaxTokens;
-
     public bool IsImageInputSupported => _customAssistant.IsImageInputSupported;
-
     public bool IsFunctionCallingSupported => _customAssistant.IsFunctionCallingSupported;
-
     public bool IsDeepThinkingSupported => _customAssistant.IsDeepThinkingSupported;
 
     public abstract IChatCompletionService ChatCompletionService { get; }

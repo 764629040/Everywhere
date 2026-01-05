@@ -1,0 +1,12 @@
+<Project>
+    <!-- Stub InternalUtilities.props file for semantic-kernel-patch projects -->
+    <!-- This file is required by Connectors.Google and Plugins.Web projects -->
+    <!-- Since we don't have the full semantic-kernel repository, we provide a minimal stub -->
+
+    <PropertyGroup>
+        <!-- Target framework is managed by Directory.Build.props -->
+        <TargetFramework Condition="'$(TargetFramework)' == ''">net10.0</TargetFramework>
+    </PropertyGroup>
+
+    <!-- Add any common properties or items here if needed -->
+</Project>

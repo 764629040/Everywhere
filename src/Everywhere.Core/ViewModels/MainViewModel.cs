@@ -120,15 +120,15 @@ public sealed partial class MainViewModel : ReactiveViewModelBase, IDisposable
         if (_settings.Model.CustomAssistants.Count == 0)
         {
             DialogManager
-                .CreateCustomDialog(ServiceLocator.Resolve<WelcomeView>())
-                .ShowAsync();
+                .CreateDialog(ServiceLocator.Resolve<WelcomeView>())
+                .Show();
         }
         else if (previousLaunchVersion != version)
         {
             DialogManager
-                .CreateCustomDialog(ServiceLocator.Resolve<ChangeLogView>())
+                .CreateDialog(ServiceLocator.Resolve<ChangeLogView>())
                 .Dismissible()
-                .ShowAsync();
+                .Show();
         }
 
         PersistentState.PreviousLaunchVersion = version?.ToString();

@@ -7,7 +7,7 @@ using MessagePack;
 namespace Everywhere.Chat;
 
 /// <summary>Tree node in the chat history. The current branch is resolved by ChoiceIndex per node.</summary>
-[MessagePackObject(AllowPrivate = true)]
+[MessagePackObject]
 public sealed partial class ChatMessageNode : ObservableObject, IDisposable
 {
     [Key(0)]

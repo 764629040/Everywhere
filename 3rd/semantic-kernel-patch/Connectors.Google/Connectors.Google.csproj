@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SemanticKernel.Core"/>
+    <PackageReference Include="Microsoft.SemanticKernel.Core" />
   </ItemGroup>
-  
+
   <Import Project="$(RepoRoot)\dotnet\src\InternalUtilities\src\InternalUtilities.props" />
 
   <ItemGroup>
@@ -67,7 +67,8 @@
     <Compile Include="$(ProjectRoot)\Extensions\GoogleAIServiceCollectionExtensions.cs">
       <Link>Extensions\GoogleAIServiceCollectionExtensions.cs</Link>
     </Compile>
-    <Compile Include="$(ProjectRoot)\Extensions\GoogleAIServiceCollectionExtensions.DependencyInjection.cs">
+    <Compile
+      Include="$(ProjectRoot)\Extensions\GoogleAIServiceCollectionExtensions.DependencyInjection.cs">
       <Link>Extensions\GoogleAIServiceCollectionExtensions.DependencyInjection.cs</Link>
     </Compile>
     <Compile Include="$(ProjectRoot)\Extensions\VertexAIKernelBuilderExtensions.cs">
@@ -79,7 +80,8 @@
     <Compile Include="$(ProjectRoot)\Extensions\VertexAIServiceCollectionExtensions.cs">
       <Link>Extensions\VertexAIServiceCollectionExtensions.cs</Link>
     </Compile>
-    <Compile Include="$(ProjectRoot)\Extensions\VertexAIServiceCollectionExtensions.DependencyInjection.cs">
+    <Compile
+      Include="$(ProjectRoot)\Extensions\VertexAIServiceCollectionExtensions.DependencyInjection.cs">
       <Link>Extensions\VertexAIServiceCollectionExtensions.DependencyInjection.cs</Link>
     </Compile>
     <Compile Include="$(ProjectRoot)\GeminiPromptExecutionSettings.cs">

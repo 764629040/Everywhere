@@ -59,9 +59,9 @@ public partial class SoftwareUpdateControl(
             toastManager
                 .CreateToast(LocaleResolver.Common_Info)
                 .WithContent(LocaleResolver.CommonSettings_SoftwareUpdate_Toast_DownloadingUpdate)
-                .WithProgress(progress)
-                .WithCancellationTokenSource(cts)
-                .WithDelay(0d)
+                // .WithProgress(progress) // Temporarily disabled - WithProgress not available
+                // .WithCancellationTokenSource(cts) // Temporarily disabled
+                // .WithDelay(0d) // Temporarily disabled
                 .OnBottomRight()
                 .ShowInfo();
             await SoftwareUpdater.PerformUpdateAsync(progress, cts.Token);

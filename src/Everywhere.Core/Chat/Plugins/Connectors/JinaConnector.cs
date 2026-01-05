@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.SemanticKernel.Plugins.Web;
+using Everywhere.Chat.Plugins;
 using ZLinq;
 
 namespace Everywhere.Chat.Plugins;

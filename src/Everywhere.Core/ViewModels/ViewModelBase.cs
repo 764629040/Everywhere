@@ -77,8 +77,8 @@ public abstract class ReactiveViewModelBase : ObservableValidator
 
                     if (topLevel is IReactiveHost reactiveHost)
                     {
-                        DialogManager = reactiveHost.DialogHost.Manager;
-                        ToastManager = reactiveHost.ToastHost.Manager;
+                        DialogManager = reactiveHost.DialogHost.Manager!;
+                        ToastManager = reactiveHost.ToastHost.Manager!;
                     }
                 }
 

@@ -1,9 +1,13 @@
 ﻿<ResourceDictionary
   xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:common="clr-namespace:Everywhere.Common;assembly=Everywhere.Abstractions" xmlns:mcp="clr-namespace:ModelContextProtocol.Client;assembly=ModelContextProtocol.Core"
-  xmlns:plugins="clr-namespace:Everywhere.Chat.Plugins" xmlns:shadui="clr-namespace:ShadUI.Controls;assembly=ShadUI"
+  xmlns:plugins="clr-namespace:Everywhere.Chat.Plugins" xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI"
   xmlns:sys="clr-namespace:System;assembly=System.Runtime" xmlns:v="using:Everywhere.Views"
   xmlns:vc="clr-namespace:Everywhere.ValueConverters">
+  <Design.PreviewWith>
+    <v:McpTransportConfigurationForm/>
+  </Design.PreviewWith>
+
   <ControlTheme
     x:Key="{x:Type v:McpTransportConfigurationForm}"
     TargetType="v:McpTransportConfigurationForm">

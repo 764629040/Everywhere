@@ -5,7 +5,7 @@ using MessagePack.Formatters;
 
 namespace Everywhere.Chat.Plugins;
 
-[MessagePackObject(SuppressSourceGeneration = true)]
+[MessagePackObject(keyAsPropertyName: true)]
 [MessagePackFormatter(typeof(ChatPluginDisplaySinkFormatter))]
 public sealed class ChatPluginDisplaySink : IReadOnlyList<ChatPluginDisplayBlock>, ISourceList<ChatPluginDisplayBlock>, IChatPluginDisplaySink
 {

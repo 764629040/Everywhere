@@ -6,7 +6,7 @@ using MessagePack;
 namespace Everywhere.Chat;
 
 /// <summary>Chat context metadata persisted along with the object graph.</summary>
-[MessagePackObject(AllowPrivate = true)]
+[MessagePackObject]
 public partial class ChatContextMetadata(Guid id, DateTimeOffset dateCreated, DateTimeOffset dateModified, string? topic) : ObservableObject
 {
     /// <summary>

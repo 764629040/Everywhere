@@ -9,7 +9,7 @@ global using Avalonia;
 global using Everywhere.Extensions;
 global using Everywhere.I18N;
 global using Everywhere.ViewModels;
-global using ShadUI.Extensions;
+// global using ShadUI.Extensions; // Removed - ShadUI not available
 using Avalonia.Metadata;
 
 [assembly: XmlnsDefinition("https://github.com/avaloniaui", "Everywhere.MarkupExtensions")]

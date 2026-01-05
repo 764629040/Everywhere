@@ -4,7 +4,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia" xmlns:p="clr-namespace:Everywhere.Chat.Plugins"
   xmlns:pages="clr-namespace:Everywhere.Views.Pages" xmlns:permissions="clr-namespace:Everywhere.Chat.Permissions"
-  xmlns:shadui="clr-namespace:ShadUI.Controls;assembly=ShadUI" xmlns:v="clr-namespace:Everywhere.Views"
+  xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI" xmlns:v="clr-namespace:Everywhere.Views"
   xmlns:vc="clr-namespace:Everywhere.ValueConverters" xmlns:vm="clr-namespace:Everywhere.ViewModels"
   d:DesignHeight="450" d:DesignWidth="800"
   x:DataType="vm:ChatPluginPageViewModel" mc:Ignorable="d">
@@ -118,16 +118,17 @@
             Classes="Secondary"
             shadui:ButtonAssist.Icon="{LucideIconContent Plus}"
             Command="{Binding AddMcpPluginCommand}"
-            Content="{I18N {x:Static LocaleKey.ChatPluginPage_AddMcpPluginButton_Content}}"/>
+            Content="{I18N {x:Static LocaleKey.ChatPluginPage_AddMCPPluginButton_Content}}"/>
 
-          <Button
-            Classes="Secondary"
-            Command="{Binding ImportMcpPluginCommand}"
-            ToolTip.Tip="{I18N {x:Static LocaleKey.ChatPluginPage_ImportMcpPluginButton_ToolTip}}">
-            <LucideIcon
-              Kind="Import"
-              Size="{DynamicResource FontSizeL}"/>
-          </Button>
+          <!--  <Button  -->
+          <!--  Classes="Secondary"  -->
+          <!--  Command="{Binding DuplicateCustomAssistantCommand}"  -->
+          <!--  IsEnabled="{Binding SelectedCustomAssistant, Converter={x:Static ObjectConverters.IsNotNull}}"  -->
+          <!--  ToolTip.Tip="{I18N {x:Static LocaleKey.CustomAssistantPage_DuplicateCustomAssistantButton_ToolTip}}">  -->
+          <!--  <LucideIcon  -->
+          <!--  Kind="Copy"  -->
+          <!--  Size="{DynamicResource FontSizeL}"/>  -->
+          <!-- </Button> -->
         </shadui:ButtonGroup>
       </DockPanel>
     </shadui:NavigationView.PaneHeader>

@@ -11,16 +11,15 @@ namespace Everywhere.Configuration;
 /// </summary>
 [Serializable]
 [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-public partial class Settings : ObservableObject
+public class Settings : ObservableObject
 {
-    [ObservableProperty]
-    public partial string? Version { get; set; }
-
     public CommonSettings Common { get; set; } = new();
 
+    [HiddenSettingsItem]
     public ModelSettings Model { get; set; } = new();
 
     public ChatWindowSettings ChatWindow { get; set; } = new();
 
+    [HiddenSettingsItem]
     public PluginSettings Plugin { get; set; } = new();
 }

@@ -34,7 +34,7 @@ public class ChatContextMetadataChangedMessage(ChatContext? context, ChatContext
 /// Maintains the context of the chat, including a tree of <see cref="ChatMessageNode"/> and other metadata.
 /// The current branch is derived by following each node's <see cref="ChatMessageNode.ChoiceIndex"/>.
 /// </summary>
-[MessagePackObject(AllowPrivate = true)]
+[MessagePackObject]
 public sealed partial class ChatContext : ObservableObject, IObservableList<ChatMessageNode>
 {
     [Key(0)]

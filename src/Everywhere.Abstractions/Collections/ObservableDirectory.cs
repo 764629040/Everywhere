@@ -1,167 +1,15 @@
 ﻿using System.Collections.Specialized;
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Everywhere.Common;
 
 namespace Everywhere.Collections;
 
-public interface IObservableDictionary : IDictionary, INotifyPropertyChanged, INotifyCollectionChanged;
-
-public interface IKeyValuePair
-{
-    object? Key { get; }
-    object? Value { get; }
-}
-
-public readonly struct DictionaryEventItem<TKey, TValue>(TKey key, TValue value) : IKeyValuePair
-{
-    public object? Key => key;
-    public object? Value => value;
-}
-
-file static class PropertyChangedEventCache
-{
-    public static readonly PropertyChangedEventArgs CountPropertyChanged = new(nameof(ICollection.Count));
-    public static readonly PropertyChangedEventArgs KeysPropertyChanged = new(nameof(IDictionary.Keys));
-    public static readonly PropertyChangedEventArgs ValuesPropertyChanged = new(nameof(IDictionary.Values));
-    public static readonly PropertyChangedEventArgs IndexerPropertyChanged = new("Item[]");
-}
-
 public class ObservableDictionary<TKey, TValue> :
-    IObservableDictionary,
     IDictionary<TKey, TValue>,
-    IReadOnlyDictionary<TKey, TValue>,
     ICollection<ObservableKeyValuePair<TKey, TValue>>
     where TKey : notnull
 {
-    public object SyncRoot { get; } = new();
-
-    public bool IsFixedSize => false;
-
-    public bool IsSynchronized => true;
-
-    public bool IsReadOnly => false;
-
-    public int Count
-    {
-        get
-        {
-            lock (SyncRoot)
-            {
-                return _dictionary.Count;
-            }
-        }
-    }
-
-    ICollection IDictionary.Keys
-    {
-        get
-        {
-            lock (SyncRoot)
-            {
-                return ((IDictionary)_dictionary).Keys;
-            }
-        }
-    }
-
-    public ICollection<TKey> Keys
-    {
-        get
-        {
-            lock (SyncRoot)
-            {
-                return _dictionary.Keys;
-            }
-        }
-    }
-
-    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
-
-    ICollection IDictionary.Values
-    {
-        get
-        {
-            lock (SyncRoot)
-            {
-                return ((IDictionary)_dictionary).Values;
-            }
-        }
-    }
-
-    public ICollection<TValue> Values
-    {
-        get
-        {
-            lock (SyncRoot)
-            {
-                return _dictionary.Values;
-            }
-        }
-    }
-
-    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
-
-    public object? this[object key]
-    {
-        get
-        {
-            lock (SyncRoot)
-            {
-                return ((IDictionary)_dictionary)[key];
-            }
-        }
-        set
-        {
-            lock (SyncRoot)
-            {
-                ((IDictionary)_dictionary)[key] = value;
-            }
-        }
-    }
-
-    public TValue this[TKey key]
-    {
-        get
-        {
-            lock (SyncRoot)
-            {
-                return _dictionary[key];
-            }
-        }
-        set
-        {
-            lock (SyncRoot)
-            {
-                if (_dictionary.TryGetValue(key, out var oldValue))
-                {
-                    _dictionary[key] = value;
-                    OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-                        NotifyCollectionChangedAction.Replace,
-                        new DictionaryEventItem<TKey, TValue>(key, value),
-                        new DictionaryEventItem<TKey, TValue>(key, oldValue)));
-                    OnPropertyChanged(PropertyChangedEventCache.IndexerPropertyChanged);
-                    OnPropertyChanged(PropertyChangedEventCache.ValuesPropertyChanged);
-                }
-                else
-                {
-                    Add(key, value);
-                }
-            }
-        }
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-    public event NotifyCollectionChangedEventHandler? CollectionChanged;
-
-    protected virtual void OnPropertyChanged(PropertyChangedEventArgs e)
-    {
-        PropertyChanged?.Invoke(this, e);
-    }
-
-    protected virtual void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
-    {
-        CollectionChanged?.Invoke(this, e);
-    }
+    public Lock SyncRoot { get; } = new();
 
     private readonly Dictionary<TKey, TValue> _dictionary;
 
@@ -185,33 +33,102 @@ public class ObservableDictionary<TKey, TValue> :
         _dictionary = new Dictionary<TKey, TValue>(collection: collection, comparer: comparer);
     }
 
-    public void Add(object key, object? value)
+    public event NotifyCollectionChangedEventHandler? CollectionChanged;
+
+    public TValue this[TKey key]
+    {
+        get
+        {
+            lock (SyncRoot)
+            {
+                return _dictionary[key];
+            }
+        }
+        set
+        {
+            lock (SyncRoot)
+            {
+                if (_dictionary.TryGetValue(key, out var oldValue))
+                {
+                    _dictionary[key] = value;
+                    CollectionChanged?.Invoke(
+                        this,
+                        new NotifyCollectionChangedEventArgs(
+                            NotifyCollectionChangedAction.Replace,
+                            new KeyValuePair<TKey, TValue>(key, value),
+                            new KeyValuePair<TKey, TValue>(key, oldValue)));
+                }
+                else
+                {
+                    Add(key, value);
+                }
+            }
+        }
+    }
+
+    // for lock synchronization, hide keys and values.
+    ICollection<TKey> IDictionary<TKey, TValue>.Keys
+    {
+        get
+        {
+            lock (SyncRoot)
+            {
+                return _dictionary.Keys;
+            }
+        }
+    }
+
+    ICollection<TValue> IDictionary<TKey, TValue>.Values
+    {
+        get
+        {
+            lock (SyncRoot)
+            {
+                return _dictionary.Values;
+            }
+        }
+    }
+
+    public bool Remove(ObservableKeyValuePair<TKey, TValue> item)
     {
         lock (SyncRoot)
         {
-            ((IDictionary)_dictionary).Add(key, value);
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-                NotifyCollectionChangedAction.Add,
-                new DictionaryEventItem<TKey, TValue>((TKey)key, (TValue)value!)));
-            OnPropertyChanged(PropertyChangedEventCache.CountPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.IndexerPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.KeysPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.ValuesPropertyChanged);
+            if (!_dictionary.TryGetValue(item.Key, out var value) ||
+                !EqualityComparer<TValue>.Default.Equals(value, item.Value) ||
+                !_dictionary.Remove(item.Key, out var value2)) return false;
+
+            CollectionChanged?.Invoke(
+                this,
+                new NotifyCollectionChangedEventArgs(
+                    NotifyCollectionChangedAction.Remove,
+                    new KeyValuePair<TKey, TValue>(item.Key, value2)));
+            return true;
         }
     }
+
+    public int Count
+    {
+        get
+        {
+            lock (SyncRoot)
+            {
+                return _dictionary.Count;
+            }
+        }
+    }
+
+    public bool IsReadOnly => false;
 
     public void Add(TKey key, TValue value)
     {
         lock (SyncRoot)
         {
             _dictionary.Add(key, value);
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-                NotifyCollectionChangedAction.Add,
-                new DictionaryEventItem<TKey, TValue>(key, value)));
-            OnPropertyChanged(PropertyChangedEventCache.CountPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.IndexerPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.KeysPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.ValuesPropertyChanged);
+            CollectionChanged?.Invoke(
+                this,
+                new NotifyCollectionChangedEventArgs(
+                    NotifyCollectionChangedAction.Add,
+                    new KeyValuePair<TKey, TValue>(key, value)));
         }
     }
 
@@ -222,22 +139,31 @@ public class ObservableDictionary<TKey, TValue> :
 
     public void Add(ObservableKeyValuePair<TKey, TValue> item)
     {
-        this[item.Key] = item.Value;
-    }
-
-    public void CopyTo(Array array, int index)
-    {
         lock (SyncRoot)
         {
-            ((IDictionary)_dictionary).CopyTo(array, index);
+            _dictionary[item.Key] = item.Value; // use indexer to allow update
+            CollectionChanged?.Invoke(
+                this,
+                new NotifyCollectionChangedEventArgs(
+                    NotifyCollectionChangedAction.Add,
+                    new KeyValuePair<TKey, TValue>(item.Key, item.Value)));
         }
     }
 
-    public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    public void Clear()
     {
         lock (SyncRoot)
         {
-            ((ICollection<KeyValuePair<TKey, TValue>>)_dictionary).CopyTo(array, arrayIndex);
+            _dictionary.Clear();
+            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+        }
+    }
+
+    public bool Contains(ObservableKeyValuePair<TKey, TValue> item)
+    {
+        lock (SyncRoot)
+        {
+            return _dictionary.TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
         }
     }
 
@@ -253,61 +179,11 @@ public class ObservableDictionary<TKey, TValue> :
         }
     }
 
-    public bool Remove(ObservableKeyValuePair<TKey, TValue> item)
-    {
-        lock (SyncRoot)
-        {
-            if (!_dictionary.TryGetValue(item.Key, out var value) ||
-                !EqualityComparer<TValue>.Default.Equals(value, item.Value) ||
-                !_dictionary.Remove(item.Key, out var value2)) return false;
-
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-                NotifyCollectionChangedAction.Remove,
-                new DictionaryEventItem<TKey, TValue>(item.Key, value2)));
-            OnPropertyChanged(PropertyChangedEventCache.CountPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.IndexerPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.KeysPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.ValuesPropertyChanged);
-            return true;
-        }
-    }
-
-    public void Clear()
-    {
-        lock (SyncRoot)
-        {
-            if (_dictionary.Count <= 0) return;
-
-            _dictionary.Clear();
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-            OnPropertyChanged(PropertyChangedEventCache.CountPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.IndexerPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.KeysPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.ValuesPropertyChanged);
-        }
-    }
-
-    public bool Contains(object key)
-    {
-        lock (SyncRoot)
-        {
-            return ((IDictionary)_dictionary).Contains(key);
-        }
-    }
-
     public bool Contains(KeyValuePair<TKey, TValue> item)
     {
         lock (SyncRoot)
         {
             return ((ICollection<KeyValuePair<TKey, TValue>>)_dictionary).Contains(item);
-        }
-    }
-
-    public bool Contains(ObservableKeyValuePair<TKey, TValue> item)
-    {
-        lock (SyncRoot)
-        {
-            return _dictionary.TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
         }
     }
 
@@ -319,24 +195,55 @@ public class ObservableDictionary<TKey, TValue> :
         }
     }
 
-    IDictionaryEnumerator IDictionary.GetEnumerator()
+    public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
     {
         lock (SyncRoot)
         {
-            return ((IDictionary)_dictionary).GetEnumerator();
+            ((ICollection<KeyValuePair<TKey, TValue>>)_dictionary).CopyTo(array, arrayIndex);
         }
     }
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
-    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+    public bool Remove(TKey key)
     {
         lock (SyncRoot)
         {
-            return _dictionary.ToList().GetEnumerator();
+            if (_dictionary.Remove(key, out var value))
+            {
+                CollectionChanged?.Invoke(
+                    this,
+                    new NotifyCollectionChangedEventArgs(
+                        NotifyCollectionChangedAction.Remove,
+                        new KeyValuePair<TKey, TValue>(key, value)));
+                return true;
+            }
+            return false;
+        }
+    }
+
+    public bool Remove(KeyValuePair<TKey, TValue> item)
+    {
+        lock (SyncRoot)
+        {
+            if (_dictionary.TryGetValue(item.Key, out var value) &&
+                EqualityComparer<TValue>.Default.Equals(value, item.Value) &&
+                _dictionary.Remove(item.Key, out var value2))
+            {
+                CollectionChanged?.Invoke(
+                    this,
+                    new NotifyCollectionChangedEventArgs(
+                        NotifyCollectionChangedAction.Remove,
+                        new KeyValuePair<TKey, TValue>(item.Key, value2)));
+                return true;
+            }
+            return false;
+        }
+    }
+
+    public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+    {
+        lock (SyncRoot)
+        {
+            return _dictionary.TryGetValue(key, out value);
         }
     }
 
@@ -355,63 +262,27 @@ public class ObservableDictionary<TKey, TValue> :
         }
     }
 
-    public void Remove(object key)
+    public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
     {
         lock (SyncRoot)
         {
-            if (!_dictionary.Remove((TKey)key, out var value)) return;
-
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-                NotifyCollectionChangedAction.Remove,
-                new DictionaryEventItem<TKey, TValue>((TKey)key, value)));
-            OnPropertyChanged(PropertyChangedEventCache.CountPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.IndexerPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.KeysPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.ValuesPropertyChanged);
+            return _dictionary.ToList().GetEnumerator();
         }
     }
 
-    public bool Remove(TKey key)
+    IEnumerator IEnumerable.GetEnumerator()
     {
-        lock (SyncRoot)
-        {
-            if (!_dictionary.Remove(key, out var value)) return false;
-
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-                NotifyCollectionChangedAction.Remove,
-                new DictionaryEventItem<TKey, TValue>(key, value)));
-            OnPropertyChanged(PropertyChangedEventCache.CountPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.IndexerPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.KeysPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.ValuesPropertyChanged);
-            return true;
-        }
+        return GetEnumerator();
     }
 
-    public bool Remove(KeyValuePair<TKey, TValue> item)
+    public IEqualityComparer<TKey> Comparer
     {
-        lock (SyncRoot)
+        get
         {
-            if (!_dictionary.TryGetValue(item.Key, out var value) ||
-                !EqualityComparer<TValue>.Default.Equals(value, item.Value) ||
-                !_dictionary.Remove(item.Key, out var value2)) return false;
-
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(
-                NotifyCollectionChangedAction.Remove,
-                new DictionaryEventItem<TKey, TValue>(item.Key, value2)));
-            OnPropertyChanged(PropertyChangedEventCache.CountPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.IndexerPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.KeysPropertyChanged);
-            OnPropertyChanged(PropertyChangedEventCache.ValuesPropertyChanged);
-            return true;
-        }
-    }
-
-    public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
-    {
-        lock (SyncRoot)
-        {
-            return _dictionary.TryGetValue(key, out value);
+            lock (SyncRoot)
+            {
+                return _dictionary.Comparer;
+            }
         }
     }
 }

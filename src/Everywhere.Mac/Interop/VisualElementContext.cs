@@ -1,7 +1,8 @@
 ﻿using Avalonia;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Everywhere.Extensions; // For DispatcherExtensions
 using Everywhere.Interop;
-using ShadUI.Extensions;
 using ZLinq;
 
 namespace Everywhere.Mac.Interop;

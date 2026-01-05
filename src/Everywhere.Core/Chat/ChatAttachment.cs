@@ -10,7 +10,7 @@ using Serilog;
 
 namespace Everywhere.Chat;
 
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 [Union(0, typeof(ChatVisualElementAttachment))]
 [Union(1, typeof(ChatTextAttachment))]
 [Union(3, typeof(ChatFileAttachment))]
@@ -22,7 +22,7 @@ public abstract partial class ChatAttachment(DynamicResourceKeyBase headerKey) :
     public DynamicResourceKeyBase HeaderKey => headerKey;
 }
 
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public partial class ChatVisualElementAttachment : ChatAttachment
 {
     [Key(1)]
@@ -60,7 +60,7 @@ public partial class ChatVisualElementAttachment : ChatAttachment
     }
 }
 
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public partial class ChatTextAttachment(DynamicResourceKeyBase headerKey, string text) : ChatAttachment(headerKey)
 {
     public override LucideIconKind Icon => LucideIconKind.TextInitial;
@@ -77,7 +77,7 @@ public partial class ChatTextAttachment(DynamicResourceKeyBase headerKey, string
 /// <param name="filePath"></param>
 /// <param name="sha256"></param>
 /// <param name="mimeType"></param>
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public partial class ChatFileAttachment(
     DynamicResourceKeyBase headerKey,
     string filePath,

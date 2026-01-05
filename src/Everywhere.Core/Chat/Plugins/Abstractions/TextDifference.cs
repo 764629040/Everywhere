@@ -21,7 +21,7 @@ public enum TextChangeKind
 /// A half-open character range over the original text \[Start, End).
 /// Offsets are 0-based and refer to the original file content.
 /// </summary>
-[MessagePackObject(OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public readonly partial record struct TextRange
 {
     [Key(0)]
@@ -59,7 +59,7 @@ public readonly partial record struct TextRange
 /// <summary>
 /// A single edit on the original text. Offsets refer to the original content.
 /// </summary>
-[MessagePackObject(OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class TextChange : ObservableObject
 {
     [Key(0)]
@@ -120,7 +120,7 @@ public sealed partial class TextChange : ObservableObject
 /// <remarks>
 /// This record is not used for serialization; use ToString() for text representation.
 /// </remarks>
-[MessagePackObject(OnlyIncludeKeyedMembers = true, AllowPrivate = true)]
+[MessagePackObject]
 public sealed partial class TextDifference : ObservableObject, IDisposable
 {
     [Key(0)]

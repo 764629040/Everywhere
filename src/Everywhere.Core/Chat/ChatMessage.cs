@@ -20,7 +20,7 @@ using ZLinq;
 
 namespace Everywhere.Chat;
 
-[MessagePackObject(OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 [Union(0, typeof(SystemChatMessage))]
 [Union(1, typeof(AssistantChatMessage))]
 [Union(2, typeof(UserChatMessage))]
@@ -41,7 +41,7 @@ public interface IChatMessageWithAttachments
     IEnumerable<ChatAttachment> Attachments { get; }
 }
 
-[MessagePackObject(OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public partial class SystemChatMessage(string systemPrompt) : ChatMessage
 {
     public override AuthorRole Role => AuthorRole.System;
@@ -53,7 +53,7 @@ public partial class SystemChatMessage(string systemPrompt) : ChatMessage
     public override string ToString() => SystemPrompt;
 }
 
-[MessagePackObject(OnlyIncludeKeyedMembers = true, AllowPrivate = true)]
+[MessagePackObject]
 public sealed partial class AssistantChatMessage : ChatMessage, IReadOnlyList<AssistantChatMessageSpan>, IDisposable
 {
     public override AuthorRole Role => AuthorRole.Assistant;
@@ -192,7 +192,7 @@ public sealed partial class AssistantChatMessage : ChatMessage, IReadOnlyList<As
 /// Represents a span of content in an assistant chat message.
 /// A span can contain markdown content and associated function calls.
 /// </summary>
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class AssistantChatMessageSpan : ObservableObject, IDisposable
 {
     [IgnoreMember]
@@ -310,7 +310,7 @@ public sealed partial class AssistantChatMessageSpan : ObservableObject, IDispos
     }
 }
 
-[MessagePackObject(OnlyIncludeKeyedMembers = true, AllowPrivate = true)]
+[MessagePackObject]
 public partial class UserChatMessage(string userPrompt, IEnumerable<ChatAttachment> attachments) : ChatMessage, IChatMessageWithAttachments
 {
     public override AuthorRole Role => AuthorRole.User;
@@ -332,8 +332,8 @@ public partial class UserChatMessage(string userPrompt, IEnumerable<ChatAttachme
     [Key(2)]
     private IEnumerable<MessagePackInline> MessagePackInlines
     {
-        get => Dispatcher.UIThread.InvokeOnDemand(() => Inlines.Select(MessagePackInline.FromInline).ToImmutableArray());
-        set => Dispatcher.UIThread.InvokeOnDemand(() => Inlines.Reset(value.Select(i => i.ToInline())));
+        get => Dispatcher.UIThread.InvokeAsync(() => Inlines.Select(MessagePackInline.FromInline).ToImmutableArray()).GetAwaiter().GetResult();
+        set => Dispatcher.UIThread.InvokeAsync(() => Inlines.Reset(value.Select(i => i.ToInline()))).GetAwaiter().GetResult();
     }
 
     [Key(3)]
@@ -345,7 +345,7 @@ public partial class UserChatMessage(string userPrompt, IEnumerable<ChatAttachme
 /// <summary>
 /// Represents an action message in the chat.
 /// </summary>
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public partial class ActionChatMessage : ChatMessage
 {
     [Key(0)]
@@ -395,7 +395,7 @@ public partial class ActionChatMessage : ChatMessage
 /// <summary>
 /// Represents a function call action message in the chat.
 /// </summary>
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class FunctionCallChatMessage : ChatMessage, IChatMessageWithAttachments, IDisposable
 {
     [Key(0)]

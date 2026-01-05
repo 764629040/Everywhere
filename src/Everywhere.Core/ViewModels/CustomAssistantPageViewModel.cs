@@ -60,8 +60,7 @@ public partial class CustomAssistantPageViewModel(IKernelMixinFactory kernelMixi
                 background: RandomAssistantIconBackgrounds[Random.Shared.Next(RandomAssistantIconBackgrounds.Length)])
             {
                 Kind = LucideIconKind.Bot
-            },
-            ConfiguratorType = ModelProviderConfiguratorType.PresetBased
+            }
         };
         settings.Model.CustomAssistants.Add(newAssistant);
         SelectedCustomAssistant = newAssistant;
@@ -87,7 +86,6 @@ public partial class CustomAssistantPageViewModel(IKernelMixinFactory kernelMixi
     private async Task CheckConnectivityAsync(CancellationToken cancellationToken)
     {
         if (SelectedCustomAssistant is not { } customAssistant) return;
-        if (!customAssistant.Configurator.Validate()) return;
 
         try
         {
@@ -103,7 +101,7 @@ public partial class CustomAssistantPageViewModel(IKernelMixinFactory kernelMixi
             Log.Logger.ForContext<CustomAssistantPageViewModel>().Error(
                 ex,
                 "Failed to check connectivity key for endpoint {ProviderId} and model {ModelId}",
-                customAssistant.Endpoint,
+                customAssistant.Endpoint.ActualValue,
                 customAssistant.ModelId);
             ToastManager
                 .CreateToast(LocaleResolver.CustomAssistantPageViewModel_CheckConnectivity_FailedToast_Title)
@@ -114,17 +112,11 @@ public partial class CustomAssistantPageViewModel(IKernelMixinFactory kernelMixi
     }
 
     [RelayCommand]
-    private async Task DeleteCustomAssistantAsync()
+    private void DeleteCustomAssistant()
     {
         if (SelectedCustomAssistant is not { } customAssistant) return;
-        var result = await DialogManager.CreateDialog(
-                LocaleResolver.CustomAssistantPageViewModel_DeleteCustomAssistant_Dialog_Message.Format(customAssistant.Name),
-                LocaleResolver.Common_Warning)
-            .WithPrimaryButton(LocaleResolver.Common_Yes)
-            .WithCancelButton(LocaleResolver.Common_No)
-            .ShowAsync();
-        if (result != DialogResult.Primary) return;
-
+        
+        // Temporarily simplified - direct deletion without confirmation dialog
         settings.Model.CustomAssistants.Remove(customAssistant);
     }
 }

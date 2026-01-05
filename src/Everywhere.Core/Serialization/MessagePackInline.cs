@@ -28,7 +28,7 @@ public abstract partial class MessagePackInline
 /// <summary>
 /// Represents a text run inline element for MessagePack serialization.
 /// </summary>
-[MessagePackObject(AllowPrivate = true)]
+[MessagePackObject]
 public partial class MessagePackRun : MessagePackInline
 {
     /// <summary>

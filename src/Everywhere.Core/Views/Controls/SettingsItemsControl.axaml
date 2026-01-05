@@ -1,7 +1,7 @@
 ﻿<ResourceDictionary
   xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:at="clr-namespace:Everywhere.AttachedProperties" xmlns:c="clr-namespace:Everywhere.Configuration"
-  xmlns:shadui="clr-namespace:ShadUI.Controls;assembly=ShadUI" xmlns:v="using:Everywhere.Views">
+  xmlns:shadui="clr-namespace:ShadUI;assembly=ShadUI" xmlns:v="using:Everywhere.Views">
   <Design.PreviewWith>
     <v:SettingsItemsControl/>
   </Design.PreviewWith>
@@ -64,7 +64,6 @@
                       shadui:ControlAssist.Height="{Binding Height}"
                       AcceptsReturn="{Binding IsMultiline}"
                       MaxLength="{Binding MaxLength}"
-                      MaxLines="6"
                       PasswordChar="{Binding PasswordChar}"
                       Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                       TextWrapping="{Binding TextWrapping}"
@@ -123,8 +122,8 @@
                         Command="{Binding ResetCommand}"
                         ToolTip.Tip="{I18N {x:Static LocaleKey.SettingsPage_Reset_Button_ToolTip}}">
                         <LucideIcon
-                          Kind="RotateCcw"
-                          Size="{DynamicResource FontSizeL}"/>
+                          Width="18" Height="18"
+                          Kind="RotateCcw" Size="18"/>
                       </Button>
 
                       <ContentControl
@@ -205,7 +204,6 @@
                 VerticalAlignment="Center" Spacing="4">
                 <TextBlock
                   IsHitTestVisible="False"
-                  IsVisible="{Binding $self.Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                   Text="{Binding HeaderKey^, FallbackValue={x:Null}}"
                   TextWrapping="Wrap"/>
                 <TextBlock
@@ -219,7 +217,7 @@
 
           <v:SettingsItemsControl
             HorizontalAlignment="Stretch"
-            ItemsSource="{Binding Children}"/>
+            ItemsSource="{Binding Items}"/>
         </Expander>
       </DataTemplate>
     </Setter>

@@ -39,7 +39,7 @@ public abstract partial class ChatPluginDisplayBlock : ObservableObject
 /// <summary>
 /// Represents a container block that can hold other display blocks.
 /// </summary>
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class ChatPluginContainerDisplayBlock : ChatPluginDisplayBlock, IEnumerable<ChatPluginDisplayBlock>, IDisposable
 {
     /// <summary>
@@ -86,7 +86,7 @@ public sealed partial class ChatPluginContainerDisplayBlock : ChatPluginDisplayB
     }
 }
 
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class ChatPluginTextDisplayBlock(string text, string? className = null) : ChatPluginDisplayBlock
 {
     [Key(0)]
@@ -96,7 +96,7 @@ public sealed partial class ChatPluginTextDisplayBlock(string text, string? clas
     public string? ClassName { get; } = className;
 }
 
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class ChatPluginDynamicResourceKeyDisplayBlock(DynamicResourceKeyBase key, string? className = null) : ChatPluginDisplayBlock
 {
     [Key(0)]
@@ -106,7 +106,7 @@ public sealed partial class ChatPluginDynamicResourceKeyDisplayBlock(DynamicReso
     public string? ClassName { get; } = className;
 }
 
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class ChatPluginMarkdownDisplayBlock : ChatPluginDisplayBlock
 {
     public ObservableStringBuilder MarkdownBuilder { get; } = new();
@@ -119,7 +119,7 @@ public sealed partial class ChatPluginMarkdownDisplayBlock : ChatPluginDisplayBl
     }
 }
 
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class ChatPluginProgressDisplayBlock(DynamicResourceKeyBase headerKey) : ChatPluginDisplayBlock
 {
     [field: AllowNull, MaybeNull]
@@ -136,7 +136,7 @@ public sealed partial class ChatPluginProgressDisplayBlock(DynamicResourceKeyBas
 /// <summary>
 /// Represents a reference to a file or folder in a chat plugin display block.
 /// </summary>
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public partial class ChatPluginFileReference(string fullPath, DynamicResourceKeyBase? displayNameKey = null)
 {
     [Key(0)]
@@ -169,7 +169,7 @@ public partial class ChatPluginFileReference(string fullPath, DynamicResourceKey
     }
 }
 
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class ChatPluginFileReferencesDisplayBlock(params IReadOnlyList<ChatPluginFileReference> references) : ChatPluginDisplayBlock
 {
     [Key(0)]
@@ -182,7 +182,7 @@ public sealed partial class ChatPluginFileReferencesDisplayBlock(params IReadOnl
     public bool HasMoreReferences => TotalReferenceCount > References.Count;
 }
 
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 [method: SerializationConstructor]
 public sealed partial class ChatPluginFileDifferenceDisplayBlock(TextDifference difference) : ChatPluginDisplayBlock
 {
@@ -217,7 +217,7 @@ public sealed partial class ChatPluginFileDifferenceDisplayBlock(TextDifference 
 /// </summary>
 /// <param name="url"></param>
 /// <param name="displayNameKey"></param>
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class ChatPluginUrl(string url, DynamicResourceKeyBase displayNameKey)
 {
     [Key(0)]
@@ -238,7 +238,7 @@ public sealed partial class ChatPluginUrl(string url, DynamicResourceKeyBase dis
 /// Represents a display block containing multiple URLs.
 /// </summary>
 /// <param name="urls"></param>
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class ChatPluginUrlsDisplayBlock(params IReadOnlyList<ChatPluginUrl> urls) : ChatPluginDisplayBlock
 {
     [Key(0)]
@@ -249,7 +249,7 @@ public sealed partial class ChatPluginUrlsDisplayBlock(params IReadOnlyList<Chat
 /// Represents a separator display block.
 /// </summary>
 /// <param name="thickness"></param>
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class ChatPluginSeparatorDisplayBlock(double thickness = 1.0d) : ChatPluginDisplayBlock
 {
     [Key(0)]
@@ -261,7 +261,7 @@ public sealed partial class ChatPluginSeparatorDisplayBlock(double thickness = 1
 /// </summary>
 /// <param name="code"></param>
 /// <param name="language"></param>
-[MessagePackObject(AllowPrivate = true, OnlyIncludeKeyedMembers = true)]
+[MessagePackObject]
 public sealed partial class ChatPluginCodeBlockDisplayBlock(string code, string? language = null) : ChatPluginDisplayBlock
 {
     [Key(0)]

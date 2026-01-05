@@ -12,17 +12,19 @@ public partial class AboutPageViewModel : ReactiveViewModelBase
     [RelayCommand]
     private void OpenWelcomeDialog()
     {
-        DialogManager
-            .CreateCustomDialog(ServiceLocator.Resolve<WelcomeView>())
-            .ShowAsync();
+        // Temporarily disabled
+        // DialogManager
+        //     .CreateCustomDialog(ServiceLocator.Resolve<WelcomeView>())
+        //     .ShowAsync();
     }
 
     [RelayCommand]
     private void OpenChangeLogDialog()
     {
-        DialogManager
-            .CreateCustomDialog(ServiceLocator.Resolve<ChangeLogView>())
-            .Dismissible()
-            .ShowAsync();
+        // Temporarily simplified - dialog disabled
+        // DialogManager
+        //     .CreateDialog(ServiceLocator.Resolve<ChangeLogView>())
+        //     .Dismissible()
+        //     .Show();
     }
 }

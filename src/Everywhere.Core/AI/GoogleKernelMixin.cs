@@ -2,7 +2,8 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.Google;
+// Temporarily commented out - Google Connectors not available in current NuGet package
+// using Microsoft.SemanticKernel.Connectors.Google;
 
 namespace Everywhere.AI;
 
@@ -19,41 +20,47 @@ public sealed class GoogleKernelMixin : KernelMixinBase
         ILoggerFactory loggerFactory
     ) : base(customAssistant)
     {
-        var service = new GoogleAIGeminiChatCompletionService(
-            ModelId,
-            EnsureApiKey(),
-            httpClient: httpClient,
-            loggerFactory: loggerFactory,
-            customEndpoint: new Uri(Endpoint, UriKind.Absolute));
-
-        ChatCompletionService = new OptimizedGeminiChatCompletionService(service);
+        // Temporarily disabled - Google Connectors not available
+        throw new NotSupportedException("Google Gemini integration is temporarily disabled due to missing dependencies. Please use other AI providers.");
+        
+        // var service = new GoogleAIGeminiChatCompletionService(
+        //     ModelId,
+        //     ApiKey ?? string.Empty,
+        //     httpClient: httpClient,
+        //     loggerFactory: loggerFactory,
+        //     customEndpoint: new Uri(Endpoint, UriKind.Absolute));
+        //
+        // ChatCompletionService = new OptimizedGeminiChatCompletionService(service);
     }
 
     public override PromptExecutionSettings GetPromptExecutionSettings(FunctionChoiceBehavior? functionChoiceBehavior = null)
     {
-        double? temperature = _customAssistant.Temperature.IsCustomValueSet ? _customAssistant.Temperature.ActualValue : null;
-        double? topP = _customAssistant.TopP.IsCustomValueSet ? _customAssistant.TopP.ActualValue : null;
-        int? maxTokens = _customAssistant.MaxTokens <= 0 ? null : _customAssistant.MaxTokens;
-
-        // Convert FunctionChoiceBehavior to GeminiToolCallBehavior
-        GeminiToolCallBehavior? toolCallBehavior = null;
-        if (functionChoiceBehavior is not null and not NoneFunctionChoiceBehavior)
-        {
-            toolCallBehavior = GeminiToolCallBehavior.EnableKernelFunctions; // should deal with AutoInvoke, but not used in Everywhere afaik
-        }
-
-        return new GeminiPromptExecutionSettings
-        {
-            Temperature = temperature,
-            TopP = topP,
-            MaxTokens = maxTokens,
-            ToolCallBehavior = toolCallBehavior,
-            ThinkingConfig = IsDeepThinkingSupported ? new GeminiThinkingConfig
-            {
-                ThinkingBudget = -1,
-                IncludeThoughts = true
-            } : null
-        };
+        // Temporarily disabled - Google Connectors not available
+        throw new NotSupportedException("Google Gemini integration is temporarily disabled due to missing dependencies. Please use other AI providers.");
+        
+        // double? temperature = _customAssistant.Temperature.IsCustomValueSet ? _customAssistant.Temperature.ActualValue : null;
+        // double? topP = _customAssistant.TopP.IsCustomValueSet ? _customAssistant.TopP.ActualValue : null;
+        // int? maxTokens = _customAssistant.MaxTokens.IsCustomValueSet ? _customAssistant.MaxTokens.ActualValue : null;
+        //
+        // // Convert FunctionChoiceBehavior to GeminiToolCallBehavior
+        // GeminiToolCallBehavior? toolCallBehavior = null;
+        // if (functionChoiceBehavior is not null and not NoneFunctionChoiceBehavior)
+        // {
+        //     toolCallBehavior = GeminiToolCallBehavior.EnableKernelFunctions;
+        // }
+        //
+        // return new GeminiPromptExecutionSettings
+        // {
+        //     Temperature = temperature,
+        //     TopP = topP,
+        //     MaxTokens = maxTokens,
+        //     ToolCallBehavior = toolCallBehavior,
+        //     ThinkingConfig = IsDeepThinkingSupported ? new GeminiThinkingConfig
+        //     {
+        //         ThinkingBudget = -1,
+        //         IncludeThoughts = true
+        //     } : null
+        // };
     }
 
     /// <summary>
@@ -85,14 +92,16 @@ public sealed class GoogleKernelMixin : KernelMixinBase
                                kernel,
                                cancellationToken))
             {
+                // Temporarily disabled - Google Connectors not available
                 // inject GeminiMetadata into "Usage" key for consistent handling in ChatService
-                if (content.Metadata is GeminiMetadata geminiMetadata)
+                // if (content.Metadata is GeminiMetadata geminiMetadata)
+                if (false) // Disabled
                 {
                     var usageDetails = new UsageDetails
                     {
-                        InputTokenCount = geminiMetadata.PromptTokenCount,
-                        OutputTokenCount = geminiMetadata.CandidatesTokenCount + geminiMetadata.ThoughtsTokenCount,
-                        TotalTokenCount = geminiMetadata.TotalTokenCount
+                        InputTokenCount = 0, // geminiMetadata.PromptTokenCount,
+                        OutputTokenCount = 0, // geminiMetadata.CandidatesTokenCount + geminiMetadata.ThoughtsTokenCount,
+                        TotalTokenCount = 0 // geminiMetadata.TotalTokenCount
                     };
 
                     var newMetadata = new Dictionary<string, object?>();

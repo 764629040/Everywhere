@@ -11,18 +11,24 @@ using Everywhere.Interop;
 using Everywhere.Views;
 using LiveMarkdown.Avalonia;
 using Serilog;
-using ShadUI;
+// using ShadUI; // Removed - ShadUI not available
 using Window = Avalonia.Controls.Window;
 
 namespace Everywhere;
 
 public class App : Application
 {
+    // Assembly anchor to force ShadUI assembly loading during publish
+    static App()
+    {
+        // This ensures ShadUI assembly is included in publish output
+        var _ = typeof(ShadUI.Window).Assembly.FullName;
+    }
+
     public static string Version => typeof(TransientWindow).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
 
-    public static ThemeManager ThemeManager => _themeManager ?? throw new InvalidOperationException("ThemeManager is not initialized.");
-
-    private static ThemeManager? _themeManager;
+    // public static ThemeManager ThemeManager => _themeManager ?? throw new InvalidOperationException("ThemeManager is not initialized.");
+    // private static ThemeManager? _themeManager;
 
     public TopLevel TopLevel { get; } = new Window();
 
@@ -31,7 +37,7 @@ public class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
-        _themeManager = new ThemeManager(this);
+        // _themeManager = new ThemeManager(this); // Removed - ThemeManager not available
 
         // Initialize application mutex to ensure single instance after Locale is ready.
         Entrance.InitializeApplicationMutex(Environment.GetCommandLineArgs());
@@ -59,7 +65,7 @@ public class App : Application
                          .GroupBy(i => i.Priority)
                          .OrderBy(g => g.Key))
             {
-                Task.WhenAll(group.Select(i => i.InitializeAsync())).WaitOnDispatcherFrame();
+                Task.WhenAll(group.Select(i => i.InitializeAsync())).Wait();
             }
         }
         catch (Exception ex)

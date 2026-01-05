@@ -114,6 +114,9 @@
   <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Lib.Harmony" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.OpenApi" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Google" />
+    <PackageReference Include="MessagePack" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="Avalonia"/>
+    <PackageReference Include="MessagePack"/>
+    <PackageReference Include="MessagePack.Annotations"/>
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Avalonia.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -13,31 +13,31 @@ namespace Everywhere.AI;
 /// Allowing users to define and manage their own custom AI assistants.
 /// </summary>
 [GeneratedSettingsItems]
-public partial class CustomAssistant : ObservableValidator
+public partial class CustomAssistant : ObservableObject
 {
     [HiddenSettingsItem]
     public Guid Id { get; set; } = Guid.CreateVersion7();
 
     [ObservableProperty]
-    [HiddenSettingsItem]
+    [DynamicResourceKey(
+        LocaleKey.CustomAssistant_Icon_Header,
+        LocaleKey.CustomAssistant_Icon_Description)]
+    [SettingsTemplatedItem]
     public partial ColoredIcon? Icon { get; set; } = new(ColoredIconType.Lucide) { Kind = LucideIconKind.Bot };
 
     [ObservableProperty]
-    [HiddenSettingsItem]
-    [MinLength(1)]
-    [MaxLength(128)]
+    [DynamicResourceKey(
+        LocaleKey.CustomAssistant_Name_Header,
+        LocaleKey.CustomAssistant_Name_Description)]
+    [SettingsStringItem(MaxLength = 32)]
     public required partial string Name { get; set; }
 
     [ObservableProperty]
-    [HiddenSettingsItem]
+    [DynamicResourceKey(
+        LocaleKey.CustomAssistant_Description_Header,
+        LocaleKey.CustomAssistant_Description_Description)]
+    [SettingsStringItem(IsMultiline = true, MaxLength = 4096, Height = 80)]
     public partial string? Description { get; set; }
-
-    [DynamicResourceKey(LocaleKey.Empty)]
-    public SettingsControl<CustomAssistantInformationForm> InformationForm => new(
-        new CustomAssistantInformationForm
-        {
-            CustomAssistant = this
-        });
 
     [ObservableProperty]
     [DynamicResourceKey(
@@ -52,13 +52,9 @@ public partial class CustomAssistant : ObservableValidator
         get;
         set
         {
-            if (field == value) return;
+            if (!SetProperty(ref field, value)) return;
 
-            Configurator.Backup();
-            field = value;
             Configurator.Apply();
-
-            OnPropertyChanged();
             OnPropertyChanged(nameof(Configurator));
         }
     }
@@ -68,7 +64,7 @@ public partial class CustomAssistant : ObservableValidator
     public IModelProviderConfigurator Configurator => ConfiguratorType switch
     {
         ModelProviderConfiguratorType.Official => _officialConfigurator,
-        ModelProviderConfiguratorType.PresetBased => _presetBasedConfigurator,
+        ModelProviderConfiguratorType.Templated => _presetBasedConfigurator,
         _ => _advancedConfigurator
     };
 
@@ -79,8 +75,7 @@ public partial class CustomAssistant : ObservableValidator
         {
             [!ModelProviderConfiguratorSelector.SelectedTypeProperty] = new Binding(nameof(ConfiguratorType))
             {
-                Source = this,
-                Mode = BindingMode.TwoWay
+                Source = this
             },
             [!ModelProviderConfiguratorSelector.SettingsItemsProperty] = new Binding($"{nameof(Configurator)}.{nameof(Configurator.SettingsItems)}")
             {
@@ -90,52 +85,54 @@ public partial class CustomAssistant : ObservableValidator
 
     [ObservableProperty]
     [HiddenSettingsItem]
-    public partial string? Endpoint { get; set; }
-
-    /// <summary>
-    /// The GUID of the API key to use for this custom assistant.
-    /// Use string? for forward compatibility.
-    /// </summary>
-    [ObservableProperty]
-    [HiddenSettingsItem]
-    public partial Guid ApiKey { get; set; }
+    public partial Customizable<string> Endpoint { get; set; } = string.Empty;
 
     [ObservableProperty]
     [HiddenSettingsItem]
-    public partial ModelProviderSchema Schema { get; set; }
+    public partial Customizable<ModelProviderSchema> Schema { get; set; } = ModelProviderSchema.OpenAI;
 
     [ObservableProperty]
     [HiddenSettingsItem]
-    public partial string? ModelProviderTemplateId { get; set; }
+    public partial string? ApiKey { get; set; }
+
+    [HiddenSettingsItem]
+    public string? ModelProviderTemplateId
+    {
+        get => _presetBasedConfigurator.ModelProviderTemplateId;
+        set => _presetBasedConfigurator.ModelProviderTemplateId = value;
+    }
+
+    [HiddenSettingsItem]
+    public string? ModelDefinitionTemplateId
+    {
+        get => _presetBasedConfigurator.ModelDefinitionTemplateId;
+        set => _presetBasedConfigurator.ModelDefinitionTemplateId = value;
+    }
 
     [ObservableProperty]
     [HiddenSettingsItem]
-    public partial string? ModelDefinitionTemplateId { get; set; }
-
-    [ObservableProperty]
-    [HiddenSettingsItem]
-    public partial string? ModelId { get; set; }
+    public partial Customizable<string> ModelId { get; set; } = string.Empty;
 
     /// <summary>
     /// Indicates whether the model supports image input capabilities.
     /// </summary>
     [ObservableProperty]
     [HiddenSettingsItem]
-    public partial bool IsImageInputSupported { get; set; }
+    public partial Customizable<bool> IsImageInputSupported { get; set; } = false;
 
     /// <summary>
     /// Indicates whether the model supports function calling capabilities.
     /// </summary>
     [ObservableProperty]
     [HiddenSettingsItem]
-    public partial bool IsFunctionCallingSupported { get; set; }
+    public partial Customizable<bool> IsFunctionCallingSupported { get; set; } = false;
 
     /// <summary>
     /// Indicates whether the model supports tool calls.
     /// </summary>
     [ObservableProperty]
     [HiddenSettingsItem]
-    public partial bool IsDeepThinkingSupported { get; set; }
+    public partial Customizable<bool> IsDeepThinkingSupported { get; set; } = false;
 
     /// <summary>
     /// Maximum number of tokens that the model can process in a single request.
@@ -143,7 +140,7 @@ public partial class CustomAssistant : ObservableValidator
     /// </summary>
     [ObservableProperty]
     [HiddenSettingsItem]
-    public partial int MaxTokens { get; set; }
+    public partial Customizable<int> MaxTokens { get; set; } = 81920;
 
     [ObservableProperty]
     [DynamicResourceKey(
@@ -198,7 +195,7 @@ public enum ModelProviderConfiguratorType
     /// Advanced first for forward compatibility.
     /// </summary>
     Advanced,
-    PresetBased,
+    Templated,
     Official,
 }
 
@@ -208,42 +205,20 @@ public interface IModelProviderConfigurator
     SettingsItems SettingsItems { get; }
 
     /// <summary>
-    /// Called before switching to another configurator type to backup necessary values.
-    /// </summary>
-    void Backup();
-
-    /// <summary>
     /// Called to apply the configuration to the associated CustomAssistant.
     /// </summary>
     void Apply();
-
-    /// <summary>
-    /// Validate the current configuration and show UI feedback if invalid.
-    /// </summary>
-    /// <returns>
-    /// True if the configuration is valid; otherwise, false.
-    /// </returns>
-    bool Validate();
 }
 
 /// <summary>
 /// Configurator for the Everywhere official model provider.
 /// </summary>
 [GeneratedSettingsItems]
-public sealed partial class OfficialModelProviderConfigurator(CustomAssistant owner) : ObservableValidator, IModelProviderConfigurator
+public partial class OfficialModelProviderConfigurator(CustomAssistant owner) : ObservableObject, IModelProviderConfigurator
 {
-    public void Backup()
-    {
-    }
-
     public void Apply()
     {
-    }
-
-    public bool Validate()
-    {
-        ValidateAllProperties();
-        return !HasErrors;
+        throw new NotImplementedException();
     }
 }
 
@@ -251,7 +226,7 @@ public sealed partial class OfficialModelProviderConfigurator(CustomAssistant ow
 /// Configurator for preset-based model providers.
 /// </summary>
 [GeneratedSettingsItems]
-public sealed partial class PresetBasedModelProviderConfigurator(CustomAssistant owner) : ObservableValidator, IModelProviderConfigurator
+public partial class PresetBasedModelProviderConfigurator(CustomAssistant owner) : ObservableObject, IModelProviderConfigurator
 {
     /// <summary>
     /// Helper property to get all supported model provider templates.
@@ -267,11 +242,11 @@ public sealed partial class PresetBasedModelProviderConfigurator(CustomAssistant
     [HiddenSettingsItem]
     public string? ModelProviderTemplateId
     {
-        get => owner.ModelProviderTemplateId;
+        get;
         set
         {
-            if (value == owner.ModelProviderTemplateId) return;
-            owner.ModelProviderTemplateId = value;
+            if (value == field) return;
+            field = value;
 
             Apply();
             OnPropertyChanged();
@@ -280,8 +255,8 @@ public sealed partial class PresetBasedModelProviderConfigurator(CustomAssistant
         }
     }
 
-    [Required]
     [JsonIgnore]
+    [DefaultValue(null)]
     [DynamicResourceKey(
         LocaleKey.CustomAssistant_ModelProviderTemplate_Header,
         LocaleKey.CustomAssistant_ModelProviderTemplate_Description)]
@@ -292,38 +267,6 @@ public sealed partial class PresetBasedModelProviderConfigurator(CustomAssistant
         set => ModelProviderTemplateId = value?.Id;
     }
 
-    [HiddenSettingsItem]
-    public Guid ApiKey
-    {
-        get => owner.ApiKey;
-        set
-        {
-            if (owner.ApiKey == value) return;
-
-            owner.ApiKey = value;
-            _apiKeyBackup = value;
-            OnPropertyChanged();
-        }
-    }
-
-    [JsonIgnore]
-    [DynamicResourceKey(
-        LocaleKey.CustomAssistant_ApiKey_Header,
-        LocaleKey.CustomAssistant_ApiKey_Description)]
-    public SettingsControl<ApiKeyComboBox> ApiKeyControl => new(
-        new ApiKeyComboBox(ServiceLocator.Resolve<Settings>().Model.ApiKeys)
-        {
-            [!ApiKeyComboBox.SelectedIdProperty] = new Binding(nameof(ApiKey))
-            {
-                Source = this,
-                Mode = BindingMode.TwoWay
-            },
-            [!ApiKeyComboBox.DefaultNameProperty] = new Binding($"{nameof(ModelProviderTemplate)}.{nameof(ModelProviderTemplate.DisplayName)}")
-            {
-                Source = this,
-            },
-        });
-
     [JsonIgnore]
     [HiddenSettingsItem]
     private IEnumerable<ModelDefinitionTemplate> ModelDefinitionTemplates => ModelProviderTemplate?.ModelDefinitions ?? [];
@@ -331,11 +274,11 @@ public sealed partial class PresetBasedModelProviderConfigurator(CustomAssistant
     [HiddenSettingsItem]
     public string? ModelDefinitionTemplateId
     {
-        get => owner.ModelDefinitionTemplateId;
+        get;
         set
         {
-            if (value == owner.ModelDefinitionTemplateId) return;
-            owner.ModelDefinitionTemplateId = value;
+            if (value == field) return;
+            field = value;
 
             Apply();
             OnPropertyChanged();
@@ -343,8 +286,8 @@ public sealed partial class PresetBasedModelProviderConfigurator(CustomAssistant
         }
     }
 
-    [Required]
     [JsonIgnore]
+    [DefaultValue(null)]
     [DynamicResourceKey(
         LocaleKey.CustomAssistant_ModelDefinitionTemplate_Header,
         LocaleKey.CustomAssistant_ModelDefinitionTemplate_Description)]
@@ -356,77 +299,11 @@ public sealed partial class PresetBasedModelProviderConfigurator(CustomAssistant
         set => ModelDefinitionTemplateId = value?.Id;
     }
 
-    private Guid _apiKeyBackup;
-
-    public void Backup()
-    {
-        _apiKeyBackup = owner.ApiKey;
-    }
-
-    public void Apply()
-    {
-        owner.ApiKey = _apiKeyBackup;
-
-        var modelProviderTemplate = ModelProviderTemplates.FirstOrDefault(t => t.Id == ModelProviderTemplateId);
-        if (modelProviderTemplate is not null)
-        {
-            owner.Endpoint = modelProviderTemplate.Endpoint;
-            owner.Schema = modelProviderTemplate.Schema;
-            owner.RequestTimeoutSeconds = modelProviderTemplate.RequestTimeoutSeconds;
-            ModelDefinitionTemplateId = modelProviderTemplate.ModelDefinitions.FirstOrDefault(m => m.IsDefault)?.Id;
-        }
-        else
-        {
-            owner.Endpoint = string.Empty;
-            owner.Schema = ModelProviderSchema.OpenAI;
-            owner.RequestTimeoutSeconds = 20;
-            ModelDefinitionTemplateId = null;
-        }
-
-        var modelDefinitionTemplate = modelProviderTemplate?.ModelDefinitions.FirstOrDefault(m => m.Id == ModelDefinitionTemplateId);
-        if (modelDefinitionTemplate is not null)
-        {
-            owner.ModelId = modelDefinitionTemplate.Id;
-            owner.IsImageInputSupported = modelDefinitionTemplate.IsImageInputSupported;
-            owner.IsFunctionCallingSupported = modelDefinitionTemplate.IsFunctionCallingSupported;
-            owner.IsDeepThinkingSupported = modelDefinitionTemplate.IsDeepThinkingSupported;
-            owner.MaxTokens = modelDefinitionTemplate.MaxTokens;
-        }
-        else
-        {
-            owner.ModelId = string.Empty;
-            owner.IsImageInputSupported = false;
-            owner.IsFunctionCallingSupported = false;
-            owner.IsDeepThinkingSupported = false;
-            owner.MaxTokens = 81920;
-        }
-    }
-
-    public bool Validate()
-    {
-        ValidateAllProperties();
-        return !HasErrors;
-    }
-}
-
-/// <summary>
-/// Configurator for advanced model providers.
-/// </summary>
-[GeneratedSettingsItems]
-public sealed partial class AdvancedModelProviderConfigurator(CustomAssistant owner) : ObservableValidator, IModelProviderConfigurator
-{
     [DynamicResourceKey(
-        LocaleKey.CustomAssistant_Endpoint_Header,
-        LocaleKey.CustomAssistant_Endpoint_Description)]
-    [CustomValidation(typeof(AdvancedModelProviderConfigurator), nameof(ValidateEndpoint))]
-    public string? Endpoint
-    {
-        get => owner.Endpoint;
-        set => owner.Endpoint = value;
-    }
-
-    [HiddenSettingsItem]
-    public Guid ApiKey
+        LocaleKey.CustomAssistant_ApiKey_Header,
+        LocaleKey.CustomAssistant_ApiKey_Description)]
+    [SettingsStringItem(IsPassword = true)]
+    public string? ApiKey
     {
         get => owner.ApiKey;
         set
@@ -438,38 +315,89 @@ public sealed partial class AdvancedModelProviderConfigurator(CustomAssistant ow
         }
     }
 
-    [JsonIgnore]
-    [DynamicResourceKey(
-        LocaleKey.CustomAssistant_ApiKey_Header,
-        LocaleKey.CustomAssistant_ApiKey_Description)]
-    public SettingsControl<ApiKeyComboBox> ApiKeyControl => new(
-        new ApiKeyComboBox(ServiceLocator.Resolve<Settings>().Model.ApiKeys)
+    public void Apply()
+    {
+        if (owner.ConfiguratorType != ModelProviderConfiguratorType.Templated) return;
+
+        var modelProviderTemplate = ModelProviderTemplates.FirstOrDefault(t => t.Id == ModelProviderTemplateId);
+        if (modelProviderTemplate is not null)
         {
-            [!ApiKeyComboBox.SelectedIdProperty] = new Binding(nameof(ApiKey))
-            {
-                Source = this,
-                Mode = BindingMode.TwoWay
-            },
-        });
+            ApplyCustomizable(owner.Endpoint, modelProviderTemplate.Endpoint);
+            ApplyCustomizable(owner.Schema, modelProviderTemplate.Schema);
+            ApplyCustomizable(owner.RequestTimeoutSeconds, modelProviderTemplate.RequestTimeoutSeconds);
+            ModelDefinitionTemplateId = modelProviderTemplate.ModelDefinitions.FirstOrDefault(m => m.IsDefault)?.Id;
+        }
+        else
+        {
+            ApplyCustomizable(owner.Endpoint, string.Empty);
+            ApplyCustomizable(owner.Schema, ModelProviderSchema.OpenAI);
+            ApplyCustomizable(owner.RequestTimeoutSeconds, 20);
+            ModelDefinitionTemplateId = null;
+        }
+
+        var modelDefinitionTemplate = modelProviderTemplate?.ModelDefinitions.FirstOrDefault(m => m.Id == ModelDefinitionTemplateId);
+        if (modelDefinitionTemplate is not null)
+        {
+            ApplyCustomizable(owner.ModelId, modelDefinitionTemplate.Id);
+            ApplyCustomizable(owner.IsImageInputSupported, modelDefinitionTemplate.IsImageInputSupported);
+            ApplyCustomizable(owner.IsFunctionCallingSupported, modelDefinitionTemplate.IsFunctionCallingSupported);
+            ApplyCustomizable(owner.IsDeepThinkingSupported, modelDefinitionTemplate.IsDeepThinkingSupported);
+            ApplyCustomizable(owner.MaxTokens, modelDefinitionTemplate.MaxTokens);
+        }
+        else
+        {
+            ApplyCustomizable(owner.ModelId, string.Empty);
+            ApplyCustomizable(owner.IsImageInputSupported, false);
+            ApplyCustomizable(owner.IsFunctionCallingSupported, false);
+            ApplyCustomizable(owner.IsDeepThinkingSupported, false);
+            ApplyCustomizable(owner.MaxTokens, 81920);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ApplyCustomizable<T>(Customizable<T> customizable, T value) where T : notnull
+    {
+        customizable.DefaultValue = value;
+        customizable.CustomValue = value;
+    }
+}
+
+/// <summary>
+/// Configurator for advanced model providers.
+/// </summary>
+[GeneratedSettingsItems]
+public partial class AdvancedModelProviderConfigurator(CustomAssistant owner) : ObservableObject, IModelProviderConfigurator
+{
+    [DynamicResourceKey(
+        LocaleKey.CustomAssistant_Endpoint_Header,
+        LocaleKey.CustomAssistant_Endpoint_Description)]
+    public Customizable<string> Endpoint => BackupThenReturn(owner.Endpoint);
 
     [DynamicResourceKey(
         LocaleKey.CustomAssistant_Schema_Header,
         LocaleKey.CustomAssistant_Schema_Description)]
-    public ModelProviderSchema Schema
+    public Customizable<ModelProviderSchema> Schema => BackupThenReturn(owner.Schema);
+
+    [DynamicResourceKey(
+        LocaleKey.CustomAssistant_ApiKey_Header,
+        LocaleKey.CustomAssistant_ApiKey_Description)]
+    [SettingsStringItem(IsPassword = true)]
+    public string? ApiKey
     {
-        get => owner.Schema;
-        set => owner.Schema = value;
+        get => owner.ApiKey;
+        set
+        {
+            if (owner.ApiKey == value) return;
+
+            owner.ApiKey = value;
+            OnPropertyChanged();
+        }
     }
 
     [DynamicResourceKey(
         LocaleKey.CustomAssistant_ModelId_Header,
         LocaleKey.CustomAssistant_ModelId_Description)]
-    [Required, MinLength(1)]
-    public string? ModelId
-    {
-        get => owner.ModelId;
-        set => owner.ModelId = value;
-    }
+    public Customizable<string> ModelId => BackupThenReturn(owner.ModelId);
 
     /// <summary>
     /// Indicates whether the model supports image input capabilities.
@@ -477,11 +405,7 @@ public sealed partial class AdvancedModelProviderConfigurator(CustomAssistant ow
     [DynamicResourceKey(
         LocaleKey.CustomAssistant_IsImageInputSupported_Header,
         LocaleKey.CustomAssistant_IsImageInputSupported_Description)]
-    public bool IsImageInputSupported
-    {
-        get => owner.IsImageInputSupported;
-        set => owner.IsImageInputSupported = value;
-    }
+    public Customizable<bool> IsImageInputSupported => BackupThenReturn(owner.IsImageInputSupported);
 
     /// <summary>
     /// Indicates whether the model supports function calling capabilities.
@@ -489,11 +413,7 @@ public sealed partial class AdvancedModelProviderConfigurator(CustomAssistant ow
     [DynamicResourceKey(
         LocaleKey.CustomAssistant_IsFunctionCallingSupported_Header,
         LocaleKey.CustomAssistant_IsFunctionCallingSupported_Description)]
-    public bool IsFunctionCallingSupported
-    {
-        get => owner.IsFunctionCallingSupported;
-        set => owner.IsFunctionCallingSupported = value;
-    }
+    public Customizable<bool> IsFunctionCallingSupported => BackupThenReturn(owner.IsFunctionCallingSupported);
 
     /// <summary>
     /// Indicates whether the model supports tool calls.
@@ -501,11 +421,7 @@ public sealed partial class AdvancedModelProviderConfigurator(CustomAssistant ow
     [DynamicResourceKey(
         LocaleKey.CustomAssistant_IsDeepThinkingSupported_Header,
         LocaleKey.CustomAssistant_IsDeepThinkingSupported_Description)]
-    public bool IsDeepThinkingSupported
-    {
-        get => owner.IsDeepThinkingSupported;
-        set => owner.IsDeepThinkingSupported = value;
-    }
+    public Customizable<bool> IsDeepThinkingSupported => BackupThenReturn(owner.IsDeepThinkingSupported);
 
     /// <summary>
     /// Maximum number of tokens that the model can process in a single request.
@@ -515,79 +431,45 @@ public sealed partial class AdvancedModelProviderConfigurator(CustomAssistant ow
         LocaleKey.CustomAssistant_MaxTokens_Header,
         LocaleKey.CustomAssistant_MaxTokens_Description)]
     [SettingsIntegerItem(IsSliderVisible = false)]
-    public int MaxTokens
-    {
-        get => owner.MaxTokens;
-        set => owner.MaxTokens = value;
-    }
+    public Customizable<int> MaxTokens => BackupThenReturn(owner.MaxTokens);
 
     /// <summary>
     /// Backups of the original customizable values before switching to advanced configurator.
     /// Key: Property name
     /// Value: (DefaultValue, CustomValue)
     /// </summary>
-    private readonly Dictionary<string, object?> _backups = new();
-
-    public void Backup()
-    {
-        Backup(Endpoint);
-        Backup(Schema);
-        Backup(ModelId);
-        Backup(IsImageInputSupported);
-        Backup(IsFunctionCallingSupported);
-        Backup(IsDeepThinkingSupported);
-        Backup(MaxTokens);
-    }
+    private readonly Dictionary<string, (object, object?)> _backups = new();
 
     public void Apply()
     {
-        Endpoint = Restore(Endpoint);
-        Schema = Restore(Schema);
-        ModelId = Restore(ModelId);
-        IsImageInputSupported = Restore(IsImageInputSupported);
-        IsFunctionCallingSupported = Restore(IsFunctionCallingSupported);
-        IsDeepThinkingSupported = Restore(IsDeepThinkingSupported);
-        MaxTokens = Restore(MaxTokens);
-    }
-
-    public bool Validate()
-    {
-        ValidateAllProperties();
-        return !HasErrors;
+        Restore(Endpoint);
+        Restore(Schema);
+        Restore(ModelId);
+        Restore(IsImageInputSupported);
+        Restore(IsFunctionCallingSupported);
+        Restore(IsDeepThinkingSupported);
+        Restore(MaxTokens);
     }
 
     /// <summary>
     /// When the user switches configurator types, we need to preserve the values set in the advanced configurator.
     /// This method helps to return the original customizable, while keeping a backup if needed.
     /// </summary>
-    /// <param name="property"></param>
+    /// <param name="customizable"></param>
     /// <param name="propertyName"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    private void Backup<T>(T property, [CallerArgumentExpression("property")] string propertyName = "")
+    private Customizable<T> BackupThenReturn<T>(Customizable<T> customizable, [CallerMemberName] string propertyName = "") where T : notnull
     {
-        _backups[propertyName] = property;
+        _backups[propertyName] = (customizable.DefaultValue, customizable.CustomValue);
+        return customizable;
     }
 
-    private T? Restore<T>(T property, [CallerArgumentExpression("property")] string propertyName = "")
+    private void Restore<T>(Customizable<T> customizable, [CallerMemberName] string propertyName = "") where T : notnull
     {
-        return _backups.TryGetValue(propertyName, out var backup) ? (T?)backup : default;
-    }
-
-    public static ValidationResult? ValidateEndpoint(string? endpoint)
-    {
-        if (string.IsNullOrWhiteSpace(endpoint))
-        {
-            return new ValidationResult(LocaleResolver.ValidationErrorMessage_Required);
-        }
-
-        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) ||
-            uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-        {
-            return new ValidationResult(LocaleResolver.AdvancedModelProviderConfigurator_InvalidEndpoint);
-        }
-
-        return ValidationResult.Success;
+        if (!_backups.TryGetValue(propertyName, out var backup)) return;
+        customizable.DefaultValue = (T)backup.Item1;
+        customizable.CustomValue = (T?)backup.Item2;
     }
 }
 

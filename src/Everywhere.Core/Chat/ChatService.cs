@@ -189,7 +189,7 @@ public sealed partial class ChatService(
             {
                 chatContext.Add(analyzingContextMessage);
 
-                var maxTokens = customAssistant.MaxTokens;
+                var maxTokens = customAssistant.MaxTokens.ActualValue;
                 var approximateTokenLimit = Math.Min(persistentState.VisualTreeTokenLimit, maxTokens / 2);
                 var detailLevel = settings.ChatWindow.VisualTreeDetailLevel;
                 var xmlBuilder = new VisualTreeXmlBuilder(
@@ -287,8 +287,8 @@ public sealed partial class ChatService(
         try
         {
             var kernelMixin = kernelMixinFactory.GetOrCreate(customAssistant);
-            activity?.SetTag("llm.model.id", customAssistant.ModelId);
-            activity?.SetTag("llm.model.max_embedding", customAssistant.MaxTokens);
+            activity?.SetTag("llm.model.id", customAssistant.ModelId.ActualValue);
+            activity?.SetTag("llm.model.max_embedding", customAssistant.MaxTokens.ActualValue);
             return kernelMixin;
         }
         catch (Exception e)
@@ -506,8 +506,8 @@ public sealed partial class ChatService(
                 FunctionChoiceBehavior.Auto(autoInvoke: false) :
                 null);
 
-        activity?.SetTag("llm.model.id", customAssistant.ModelId);
-        activity?.SetTag("llm.model.max_embedding", customAssistant.MaxTokens);
+        activity?.SetTag("llm.model.id", customAssistant.ModelId.ActualValue);
+        activity?.SetTag("llm.model.max_embedding", customAssistant.MaxTokens.ActualValue);
 
         IDisposable? callingToolsBusyMessage = null;
 

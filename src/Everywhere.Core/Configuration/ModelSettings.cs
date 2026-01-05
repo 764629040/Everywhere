@@ -29,7 +29,4 @@ public partial class ModelSettings : ObservableObject
             OnPropertyChanged();
         }
     }
-
-    [ObservableProperty]
-    public partial ObservableCollection<ApiKey> ApiKeys { get; set; } = [];
 }

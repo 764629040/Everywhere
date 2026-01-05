@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\3rd\MessagePack-CSharp\src\MessagePack.SourceGenerator\MessagePack.SourceGenerator.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer"/>
-    <ProjectReference Include="..\..\3rd\MessagePack-CSharp\src\MessagePack\MessagePack.csproj"/>
+    <PackageReference Include="MessagePack" />
+    <PackageReference Include="MessagePack.Annotations" />
     <ProjectReference Include="..\Everywhere.Abstractions\Everywhere.Abstractions.csproj" />
   </ItemGroup>
   

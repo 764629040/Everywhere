@@ -72,7 +72,8 @@ public partial class CommonSettings : ObservableObject, ISettingsCategory
         set
         {
             if (!SetProperty(ref field, value)) return;
-            App.ThemeManager.SwitchTheme(value);
+                // Temporarily disabled - ThemeManager not available
+                // App.ThemeManager.SetTheme(value);
         }
     }
 

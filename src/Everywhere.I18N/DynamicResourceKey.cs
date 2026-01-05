@@ -13,7 +13,7 @@ namespace Everywhere.I18N;
 /// <summary>
 /// MessagePack serializable base class for dynamic resource keys. Make them happy.
 /// </summary>
-[MessagePackObject(OnlyIncludeKeyedMembers = true, AllowPrivate = true)]
+[MessagePackObject]
 [Union(0, typeof(DynamicResourceKey))]
 [Union(1, typeof(DirectResourceKey))]
 [Union(2, typeof(FormattedDynamicResourceKey))]
@@ -34,7 +34,7 @@ public abstract partial class DynamicResourceKeyBase : IObservable<object?>
 /// This class is used to create a dynamic resource key for axaml Binding.
 /// </summary>
 /// <param name="key"></param>
-[MessagePackObject(OnlyIncludeKeyedMembers = true, AllowPrivate = true)]
+[MessagePackObject]
 public partial class DynamicResourceKey(object? key) : DynamicResourceKeyBase, IRecipient<LocaleChangedMessage>
 {
     [Key(0)]
@@ -83,14 +83,33 @@ public partial class DynamicResourceKey(object? key) : DynamicResourceKeyBase, I
     [return: NotNullIfNotNull(nameof(key))]
     public static implicit operator DynamicResourceKey?(string? key) => key == null ? null : new DynamicResourceKey(key);
 
-    public static bool Exists(object key) => LocaleManager.Shared.TryGetResource(key, null, out _);
+    public static bool Exists(object key) 
+    {
+        try
+        {
+            var manager = LocaleManager.Shared;
+            return manager?.TryGetResource(key, null, out _) ?? false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     public static bool TryResolve(object key, [NotNullWhen(true)] out string? result)
     {
-        if (LocaleManager.Shared.TryGetResource(key, null, out var resource))
+        try
         {
-            result = resource?.ToString() ?? string.Empty;
-            return true;
+            var manager = LocaleManager.Shared;
+            if (manager?.TryGetResource(key, null, out var resource) ?? false)
+            {
+                result = resource?.ToString() ?? string.Empty;
+                return true;
+            }
+        }
+        catch
+        {
+            // Ignore errors
         }
 
         result = null;
@@ -99,9 +118,20 @@ public partial class DynamicResourceKey(object? key) : DynamicResourceKeyBase, I
 
     public static string Resolve(object? key)
     {
-        if (key is not null && LocaleManager.Shared.TryGetResource(key, null, out var resource))
+        if (key is not null)
         {
-            return resource?.ToString() ?? string.Empty;
+            try
+            {
+                var manager = LocaleManager.Shared;
+                if (manager?.TryGetResource(key, null, out var resource) ?? false)
+                {
+                    return resource?.ToString() ?? string.Empty;
+                }
+            }
+            catch
+            {
+                // Ignore errors
+            }
         }
 
         return key?.ToString() ?? string.Empty;
@@ -127,7 +157,7 @@ public partial class DynamicResourceKey(object? key) : DynamicResourceKeyBase, I
 /// This is useful for cases where you want to use a string as a resource key without any formatting or dynamic behavior.
 /// </summary>
 /// <param name="key"></param>
-[MessagePackObject(OnlyIncludeKeyedMembers = true, AllowPrivate = true)]
+[MessagePackObject]
 public partial class DirectResourceKey(object key) : DynamicResourceKey(key)
 {
     public static DirectResourceKey Empty { get; } = new(string.Empty);
@@ -158,7 +188,7 @@ public partial class DirectResourceKey(object key) : DynamicResourceKey(key)
 /// </summary>
 /// <param name="key"></param>
 /// <param name="args"></param>
-[MessagePackObject(OnlyIncludeKeyedMembers = true, AllowPrivate = true)]
+[MessagePackObject]
 public partial class FormattedDynamicResourceKey(object key, params IReadOnlyList<DynamicResourceKeyBase> args) : DynamicResourceKey(key)
 {
     [Key(1)]
@@ -198,7 +228,7 @@ public partial class FormattedDynamicResourceKey(object key, params IReadOnlyLis
 /// Aggregates multiple dynamic resource keys into one.
 /// </summary>
 /// <param name="keys"></param>
-[MessagePackObject(OnlyIncludeKeyedMembers = true, AllowPrivate = true)]
+[MessagePackObject]
 public partial class AggregateDynamicResourceKey(IReadOnlyList<DynamicResourceKeyBase> keys, string separator = ", ") : DynamicResourceKeyBase
 {
     [Key(0)]
